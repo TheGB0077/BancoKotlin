@@ -1,11 +1,6 @@
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlin.concurrent.thread
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 
-fun main(args: Array<String>) = runBlocking {
+fun main(args: Array<String>) {
 
     val contaManager = ContaManager.instance
     contaManager.init()
@@ -23,7 +18,7 @@ fun main(args: Array<String>) = runBlocking {
     conta?.sacar(50.0, TipoConta.CORRENTE)
 
     while (true) {
-        delay(1.toDuration(DurationUnit.SECONDS))
+        Thread.sleep(1000);
         println(conta.toString())
     }
 }
