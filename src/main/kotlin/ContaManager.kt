@@ -6,8 +6,6 @@ class ContaManager private constructor() {
 
     private val contas = mutableMapOf<String, PessoaFisica>()
 
-
-
     fun criarConta(cpf: String, nomeTitular: String, opcoes: Array<TipoConta>) {
         val pessoa = PessoaFisica(cpf, nomeTitular, opcoes)
         contas[cpf]?.let {
@@ -19,6 +17,12 @@ class ContaManager private constructor() {
 
     fun buscarConta(cpf: String): PessoaFisica? {
         return contas[cpf]
+    }
+
+    fun aplicaJuros() {
+        contas.values.forEach() {
+            it.aplicarJuros()
+        }
     }
 
     fun init() {

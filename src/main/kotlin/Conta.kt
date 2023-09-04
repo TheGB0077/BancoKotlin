@@ -13,6 +13,8 @@ abstract class Conta {
 
     abstract fun sacar(valor: Double)
 
+    abstract fun aplicarJuros()
+
     fun depositar(valor: Double) {
         bloqueada.let {
             if (it) {
@@ -33,6 +35,7 @@ private class ContaCorrente(private val cpf: String, private val nomeTitular: St
 
     private var limiteSaque:Double = 1200.0
     private var limiteCredito:Double = 2000.0
+    private var dividaCredEspecial:Double = 0.0
 
     override fun sacar(valor: Double){
 
@@ -50,9 +53,30 @@ private class ContaCorrente(private val cpf: String, private val nomeTitular: St
 
         if (valor > saldo) {
             println("Saldo insuficiente")
+            println("Você gostaria de usar seu crédito especial? (S/N):")
+            val resposta = readlnOrNull()
+            if (resposta?.uppercase() == "S") {
+                val valorRestante = valor - saldo
+                if (valorRestante > limiteCredito) {
+                    println("Limite de crédito não é suficiente")
+                    return
+                }
+                saldo = 0.0
+                dividaCredEspecial += valorRestante
+                return
+            } else if (resposta == "N") {
+                println("Operação cancelada")
+                return
+            }
             return
         }
         saldo -= valor
+    }
+
+    override fun aplicarJuros() {
+        if (dividaCredEspecial > 0) {
+            dividaCredEspecial * 1.08
+        }
     }
 }
 
@@ -72,6 +96,10 @@ private class ContaPoupanca(private val cpf: String, private val nomeTitular: St
             return
         }
         saldo -= valor
+    }
+
+    override fun aplicarJuros() {
+        saldo *= 1.0075
     }
 }
 
@@ -122,12 +150,18 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
         return false
     }
 
+    fun aplicarJuros() {
+        if(contaCorrente != null) contaCorrente!!.aplicarJuros()
+        if(contaPoupanca != null) contaPoupanca!!.aplicarJuros()
+    }
+
+
     override fun toString(): String {
         return """ 
             |CPF: $cpf
             |Nome: $nomeTitular
-            |Conta Corrente: ${contaCorrente?.numeroConta}
-            |Conta Poupança: ${contaPoupanca?.numeroConta}
+            |Conta Corrente: ${contaCorrente?.numeroConta} | Saldo: ${contaCorrente?.saldo}
+            |Conta Poupança: ${contaPoupanca?.numeroConta} | Saldo: ${contaPoupanca?.saldo}
         """.trimIndent()
     }
 }
