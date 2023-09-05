@@ -84,14 +84,15 @@ fun main(args: Array<String>) {
             }
 
             "4" -> {
-                print("Digite o CPF do destinatário: ")
-                val cpf = readln()
+                print("Digite o número conta do destinatário: ")
+                val contaDestino = readln()
                 print("Digite o valor a ser transferido: ")
                 val valor = lerValor()
-                contaManager.buscaIndice(cpf)?.let {
+                contaManager.buscaIndice(contaDestino)?.let {
                     conta.transferir(valor, it.first, it.second)
                     return
                 }
+                println("Conta não encontrada")
             }
 
             "5" -> {

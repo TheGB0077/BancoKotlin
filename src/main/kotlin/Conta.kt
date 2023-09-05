@@ -16,19 +16,20 @@ abstract class Conta {
 
     val numeroConta: String = UUID.randomUUID().toString()
 
-    abstract fun sacar(valor: Double)
+    abstract fun sacar(valor: Double): Boolean
 
-    abstract fun aplicarJuros()
-
-    fun depositar(valor: Double) {
+    fun depositar(valor: Double): Boolean {
         bloqueada.let {
             if (it) {
                 println("Conta bloqueada")
-                return
+                return false
             }
         }
         saldo.set(saldo.get() + valor)
+        return true
     }
+
+    abstract fun aplicarJuros()
 
     fun isBloqueada(): Boolean {
         return bloqueada
@@ -42,37 +43,38 @@ private class ContaCorrente(private val cpf: String, private val nomeTitular: St
     private var limiteCredito:Double = 2000.0
     val dividaCredEspecial:AtomicReference<Double> = AtomicReference(0.0)
 
-    override fun sacar(valor: Double){
+    override fun sacar(valor: Double): Boolean {
         if (isBloqueada()) {
             println("Conta bloqueada")
-            return
+            return false
         }
         if (valor > limiteSaque) {
             println("Limite de saque excedido")
-            return
+            return false
         }
 
         if (valor > saldo.get()) {
             println("Saldo insuficiente")
-            println("Você gostaria de usar seu crédito especial? (S/N):")
+            println("Você gostaria de usar seu crédito especial? (S/N): ")
             val resposta = readlnOrNull()
             if (resposta?.uppercase() == "S") {
                 val valorRestante = valor - saldo.get()
                 if (valorRestante > limiteCredito) {
                     println("Limite de crédito não é suficiente")
-                    return
+                    return false
                 }
                 saldo.set(0.0)
                 dividaCredEspecial.set(dividaCredEspecial.get() + valorRestante)
                 limiteCredito -= valorRestante
-                return
+                return true
             } else if (resposta == "N") {
                 println("Operação cancelada")
-                return
+                return false
             }
-            return
+            return false
         }
         saldo.set(saldo.get() - valor)
+        return true
     }
 
     fun processarDivida(valor: Double) {
@@ -94,16 +96,17 @@ private class ContaCorrente(private val cpf: String, private val nomeTitular: St
 
 private class ContaPoupanca(private val cpf: String, private val nomeTitular: String) : Conta() {
 
-    override fun sacar(valor: Double) {
+    override fun sacar(valor: Double): Boolean {
         if (isBloqueada()) {
             println("Conta bloqueada")
-            return
+            return false
         }
         if (valor > saldo.get()) {
             println("Saldo insuficiente")
-            return
+            return false
         }
         saldo.set(saldo.get() - valor)
+        return true
     }
 
     override fun aplicarJuros() {
@@ -129,21 +132,25 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
     fun depositar(valor: Double, tipoConta: TipoConta) {
         if (isContaInvalida(tipoConta)) return
 
+        var efetuado = false
         if (tipoConta == TipoConta.CORRENTE) {
-            contaCorrente?.depositar(valor)
+            efetuado = contaCorrente!!.depositar(valor)
         } else if (tipoConta == TipoConta.POUPANCA) {
-            contaPoupanca?.depositar(valor)
+            efetuado = contaPoupanca!!.depositar(valor)
         }
+        if (efetuado) transacoes.add(Pair(TipoTransacao.DEPOSITO, valor))
     }
 
     fun sacar(valor: Double, tipoConta: TipoConta) {
         if (isContaInvalida(tipoConta)) return
 
+        var efetuado = false
         if (tipoConta == TipoConta.CORRENTE) {
-            contaCorrente?.sacar(valor)
+            efetuado = contaCorrente!!.sacar(valor)
         } else if (tipoConta == TipoConta.POUPANCA) {
-            contaPoupanca?.sacar(valor)
+            efetuado = contaPoupanca!!.sacar(valor)
         }
+        if (efetuado) transacoes.add(Pair(TipoTransacao.SAQUE, valor))
     }
 
     fun pagamento(valor: Double) {
@@ -193,9 +200,12 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
     fun extrato() {
         println("# Extrato #")
         for ((index, transacao) in transacoes.reversed().withIndex()) {
-            if (index == transacoes.size - 15) break
-            println("${transacao.first.descricao} - Valor: ${transacao.second}")
+            if (index == transacoes.size - 15) {
+                break
+            }
+            println("${index + 1}: ${transacao.first.descricao} - Valor: ${transacao.second}")
         }
+        println("\n# Fim do extrato #\n")
     }
 
     private fun isContaInvalida(tipoConta: TipoConta): Boolean {
