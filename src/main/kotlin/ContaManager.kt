@@ -26,8 +26,12 @@ class ContaManager private constructor() {
         return indice[conta]
     }
 
+    fun bloquearConta(cpf: String) {
+        buscarConta(cpf)?.bloquearConta()
+    }
+
     fun aplicaJuros() {
-        contas.values.forEach() {
+        contas.values.forEach {
             it.aplicarJuros()
         }
     }
@@ -49,7 +53,6 @@ class ContaManager private constructor() {
         contaManager.criarConta("12345678921", "Carla da Silva", arrayOf(TipoConta.POUPANCA))
         contaManager.criarConta("12345678922", "Marcos da Silva", arrayOf(TipoConta.CORRENTE, TipoConta.POUPANCA))
         contaManager.criarConta("12345678923", "Márcia da Silva", arrayOf(TipoConta.CORRENTE))
-
     }
 }
 

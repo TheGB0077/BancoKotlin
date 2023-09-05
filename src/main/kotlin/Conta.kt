@@ -12,7 +12,7 @@ enum class TipoTransacao(val descricao: String) {
 abstract class Conta {
     val saldo: AtomicReference<Double> = AtomicReference(0.0)
 
-    private var bloqueada: Boolean = false
+    var bloqueada: Boolean = false
 
     val numeroConta: String = UUID.randomUUID().toString()
 
@@ -39,8 +39,9 @@ abstract class Conta {
 
 private class ContaCorrente(private val cpf: String, private val nomeTitular: String) : Conta() {
 
-    private var limiteSaque:Double = 1200.0
-    private var limiteCredito:Double = 2000.0
+    var limiteSaque:Double = 1200.0
+    var limiteCredMax:Double = 2000.0
+    var limiteCredito:Double = 2000.0
     val dividaCredEspecial:AtomicReference<Double> = AtomicReference(0.0)
 
     override fun sacar(valor: Double): Boolean {
@@ -208,6 +209,14 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
         println("\n# Fim do extrato #\n")
     }
 
+    fun historicoTransacoes() {
+        println("# Histórico #")
+        for ((index, transacao) in transacoes.reversed().withIndex()) {
+            println("${index + 1}: ${transacao.first.descricao} - Valor: ${transacao.second}")
+        }
+        println("\n# Fim do histórico #\n")
+    }
+
     private fun isContaInvalida(tipoConta: TipoConta): Boolean {
         if (contaCorrente == null && tipoConta == TipoConta.CORRENTE) {
             println("Cliente não possui conta corrente")
@@ -230,6 +239,51 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
 
     fun getDividaCredEspecial(): Double? {
         return contaCorrente?.dividaCredEspecial?.get()
+    }
+
+    fun atualizarLimiteSaque(limite: Double) {
+        if (limite < 0) {
+            println("Limite inválido")
+            return
+        }
+        if (contaCorrente == null) {
+            println("Cliente não possui conta corrente")
+            return
+        }
+        contaCorrente!!.limiteSaque = limite
+    }
+
+    fun atualizarLimiteCredito(limite: Double) {
+        if (limite < 0) {
+            println("Limite inválido")
+            return
+        }
+
+        if (contaCorrente == null) {
+            println("Cliente não possui conta corrente")
+            return
+        }
+
+        val diferencaLimite = contaCorrente!!.limiteCredMax - limite
+        if (diferencaLimite > contaCorrente!!.limiteCredito) {
+            println("Limite selecionado gera situação inválida para o cliente")
+            return
+        } else {
+            contaCorrente!!.limiteCredito -= diferencaLimite
+        }
+    }
+
+    fun bloquearConta() {
+        contaCorrente?.let {
+            it.bloqueada = !it.bloqueada
+            if (it.bloqueada) println("Conta corrente bloqueada")
+            else println("Conta corrente desbloqueada")
+        }
+        contaPoupanca?.let {
+            it.bloqueada = !it.bloqueada
+            if (it.bloqueada) println("Conta poupança bloqueada")
+            else println("Conta poupança desbloqueada")
+        }
     }
 
     fun aplicarJuros() {

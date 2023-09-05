@@ -48,7 +48,8 @@ fun main(args: Array<String>) {
                 continue
             }
         }
-        val conta = procuraCPF()
+
+        val conta = if (opcao != "7") procuraCPF() else PessoaFisica("0", "0", arrayOf())
         if (conta == null) {
             println("Conta não encontrada\n")
             continue
@@ -102,8 +103,46 @@ fun main(args: Array<String>) {
             "6" -> {
                 println(conta.toString())
             }
+
+            "7" -> {
+                val cpf = readln()
+                print("Digite o nome do cliente: ")
+                val nome = readln()
+                print("Digite o tipo de conta (1 - Corrente, 2 - Poupança, 3 - Corrente e Poupança): ")
+                val opcoes = when (readln().toInt()) {
+                    1 -> arrayOf(TipoConta.CORRENTE)
+                    2 -> arrayOf(TipoConta.POUPANCA)
+                    3 -> arrayOf(TipoConta.CORRENTE, TipoConta.POUPANCA)
+                    else -> {
+                        println("Opção inválida")
+                        continue
+                    }
+                }
+                contaManager.criarConta(cpf, nome, opcoes)
+            }
+
+            "8" -> {
+                val cpf = readln()
+                contaManager.bloquearConta(cpf)
+            }
+
+            "9" -> {
+                print("Digite o valor do limite: ")
+                val limite = readln().toDouble()
+                conta.atualizarLimiteSaque(limite)
+            }
+
+            "A" -> {
+                print("Digite o valor do limite: ")
+                val limite = readln().toDouble()
+                conta.atualizarLimiteCredito(limite)
+            }
+
+            "B" -> {
+                conta.historicoTransacoes()
+            }
         }
-        Thread.sleep(1000);
+        Thread.sleep(1000)
     }
 }
 
