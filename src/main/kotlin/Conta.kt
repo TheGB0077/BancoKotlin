@@ -1,11 +1,12 @@
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicReference
 
 enum class TipoConta {
     CORRENTE, POUPANCA
 }
 
 abstract class Conta {
-    var saldo: Double = 0.0
+    val saldo: AtomicReference<Double> = AtomicReference(0.0)
 
     private var bloqueada: Boolean = false
 
@@ -22,7 +23,7 @@ abstract class Conta {
                 return
             }
         }
-        saldo += valor
+        saldo.set(saldo.get() + valor)
     }
 
     fun isBloqueada(): Boolean {
@@ -35,34 +36,31 @@ private class ContaCorrente(private val cpf: String, private val nomeTitular: St
 
     private var limiteSaque:Double = 1200.0
     private var limiteCredito:Double = 2000.0
-    private var dividaCredEspecial:Double = 0.0
+    val dividaCredEspecial:AtomicReference<Double> = AtomicReference(0.0)
 
     override fun sacar(valor: Double){
-
-        isBloqueada().let {
-            if (it) {
-                println("Conta bloqueada")
-                return
-            }
+        if (isBloqueada()) {
+            println("Conta bloqueada")
+            return
         }
-
         if (valor > limiteSaque) {
             println("Limite de saque excedido")
             return
         }
 
-        if (valor > saldo) {
+        if (valor > saldo.get()) {
             println("Saldo insuficiente")
             println("Você gostaria de usar seu crédito especial? (S/N):")
             val resposta = readlnOrNull()
             if (resposta?.uppercase() == "S") {
-                val valorRestante = valor - saldo
+                val valorRestante = valor - saldo.get()
                 if (valorRestante > limiteCredito) {
                     println("Limite de crédito não é suficiente")
                     return
                 }
-                saldo = 0.0
-                dividaCredEspecial += valorRestante
+                saldo.set(0.0)
+                dividaCredEspecial.set(dividaCredEspecial.get() + valorRestante)
+
                 return
             } else if (resposta == "N") {
                 println("Operação cancelada")
@@ -70,12 +68,12 @@ private class ContaCorrente(private val cpf: String, private val nomeTitular: St
             }
             return
         }
-        saldo -= valor
+        saldo.set(saldo.get() - valor)
     }
 
     override fun aplicarJuros() {
-        if (dividaCredEspecial > 0) {
-            dividaCredEspecial * 1.08
+        if (dividaCredEspecial.get() > 0) {
+            dividaCredEspecial.set(dividaCredEspecial.get() * 1.08)
         }
     }
 }
@@ -83,23 +81,19 @@ private class ContaCorrente(private val cpf: String, private val nomeTitular: St
 private class ContaPoupanca(private val cpf: String, private val nomeTitular: String) : Conta() {
 
     override fun sacar(valor: Double) {
-
-        isBloqueada().let {
-            if (it) {
-                println("Conta bloqueada")
-                return
-            }
+        if (isBloqueada()) {
+            println("Conta bloqueada")
+            return
         }
-
-        if (valor > saldo) {
+        if (valor > saldo.get()) {
             println("Saldo insuficiente")
             return
         }
-        saldo -= valor
+        saldo.set(saldo.get() - valor)
     }
 
     override fun aplicarJuros() {
-        saldo *= 1.0075
+        saldo.set(saldo.get() * 1.0075)
     }
 }
 
@@ -116,7 +110,6 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
             contaPoupanca = ContaPoupanca(cpf, nomeTitular)
         }
     }
-
 
     fun depositar(valor: Double, tipoConta: TipoConta) {
         if (isContaInvalida(tipoConta)) return
@@ -151,16 +144,15 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
     }
 
     fun aplicarJuros() {
-        if(contaCorrente != null) contaCorrente!!.aplicarJuros()
-        if(contaPoupanca != null) contaPoupanca!!.aplicarJuros()
+        contaCorrente?.aplicarJuros()
+        contaPoupanca?.aplicarJuros()
     }
-
 
     override fun toString(): String {
         return """ 
             |CPF: $cpf
             |Nome: $nomeTitular
-            |Conta Corrente: ${contaCorrente?.numeroConta} | Saldo: ${contaCorrente?.saldo}
+            |Conta Corrente: ${contaCorrente?.numeroConta} | Saldo: ${contaCorrente?.saldo} | Dívida: ${contaCorrente?.dividaCredEspecial}
             |Conta Poupança: ${contaPoupanca?.numeroConta} | Saldo: ${contaPoupanca?.saldo}
         """.trimIndent()
     }
