@@ -5,18 +5,25 @@ class ContaManager private constructor() {
     }
 
     private val contas = mutableMapOf<String, PessoaFisica>()
+    private val indice = mutableMapOf<String, Pair<PessoaFisica, TipoConta>>()
 
     fun criarConta(cpf: String, nomeTitular: String, opcoes: Array<TipoConta>) {
-        val pessoa = PessoaFisica(cpf, nomeTitular, opcoes)
         contas[cpf]?.let {
             println("Conta já existe")
             return
         }
+        val pessoa = PessoaFisica(cpf, nomeTitular, opcoes)
+        if (opcoes.contains(TipoConta.CORRENTE)) indice[pessoa.getContaCorrente()!!] = Pair(pessoa, TipoConta.CORRENTE)
+        if (opcoes.contains(TipoConta.POUPANCA)) indice[pessoa.getContaPoupanca()!!] = Pair(pessoa, TipoConta.POUPANCA)
         contas[cpf] = pessoa
     }
 
     fun buscarConta(cpf: String): PessoaFisica? {
         return contas[cpf]
+    }
+
+    fun buscaIndice(conta: String): Pair<PessoaFisica, TipoConta>? {
+        return indice[conta]
     }
 
     fun aplicaJuros() {

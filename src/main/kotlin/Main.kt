@@ -57,15 +57,46 @@ fun main(args: Array<String>) {
         when (opcao) {
             "1" -> {
                 print("Digite o valor a ser depositado: ")
-                val valor = readln().replace(oldChar = ',', newChar = '.').toDouble()
+                val valor = lerValor()
                 conta.depositar(valor, TipoConta.CORRENTE)
             }
             "2" -> {
                 print("Digite o valor a ser sacado: ")
-                val valor = readln().replace(oldChar = ',', newChar = '.').toDouble()
+                val valor = lerValor()
                 conta.sacar(valor, TipoConta.CORRENTE)
             }
 
+            "3" -> {
+                val divida = conta.getDividaCredEspecial() ?: 0.0
+                if (divida > 0.0) {
+                    print("Deseja pagar a dívida do crédito especial? (S/N): ")
+                    val opcaoDivida = readln().uppercase()
+                    if (opcaoDivida == "S") {
+                        print("Digite o valor a ser pago: (Máximo $divida)")
+                        val valor = lerValor()
+                        conta.pagarDivida(valor)
+                        continue
+                    }
+                }
+                print("Digite o valor a ser pago: ")
+                val valor = lerValor()
+                conta.pagamento(valor)
+            }
+
+            "4" -> {
+                print("Digite o CPF do destinatário: ")
+                val cpf = readln()
+                print("Digite o valor a ser transferido: ")
+                val valor = lerValor()
+                contaManager.buscaIndice(cpf)?.let {
+                    conta.transferir(valor, it.first, it.second)
+                    return
+                }
+            }
+
+            "5" -> {
+                conta.extrato()
+            }
 
             "6" -> {
                 println(conta.toString())
@@ -73,6 +104,10 @@ fun main(args: Array<String>) {
         }
         Thread.sleep(1000);
     }
+}
+
+private fun lerValor(): Double {
+    return readln().replace(oldChar = ',', newChar = '.').toDouble()
 }
 
 fun procuraCPF(): PessoaFisica? {

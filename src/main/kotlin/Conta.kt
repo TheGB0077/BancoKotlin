@@ -5,6 +5,10 @@ enum class TipoConta {
     CORRENTE, POUPANCA
 }
 
+enum class TipoTransacao(val descricao: String) {
+    DEPOSITO("Deposito"), SAQUE("Saque"), PAGAMENTO("Pagamento"), TRANSFERENCIA("Transferência")
+}
+
 abstract class Conta {
     val saldo: AtomicReference<Double> = AtomicReference(0.0)
 
@@ -60,7 +64,7 @@ private class ContaCorrente(private val cpf: String, private val nomeTitular: St
                 }
                 saldo.set(0.0)
                 dividaCredEspecial.set(dividaCredEspecial.get() + valorRestante)
-
+                limiteCredito -= valorRestante
                 return
             } else if (resposta == "N") {
                 println("Operação cancelada")
@@ -69,6 +73,16 @@ private class ContaCorrente(private val cpf: String, private val nomeTitular: St
             return
         }
         saldo.set(saldo.get() - valor)
+    }
+
+    fun processarDivida(valor: Double) {
+        if (isBloqueada()) {
+            println("Conta bloqueada")
+            return
+        }
+        saldo.set(saldo.get()!! - valor)
+        dividaCredEspecial.set(dividaCredEspecial.get()!! - valor)
+        limiteCredito += valor
     }
 
     override fun aplicarJuros() {
@@ -101,6 +115,7 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
 
     private var contaCorrente:ContaCorrente? = null
     private var contaPoupanca:ContaPoupanca? = null
+    private val transacoes = mutableListOf<Pair<TipoTransacao, Double>>()
 
     init {
         if (opcoes.contains(TipoConta.CORRENTE)) {
@@ -131,6 +146,58 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
         }
     }
 
+    fun pagamento(valor: Double) {
+        if (valor > contaCorrente?.saldo?.get()!!) {
+            println("Saldo insuficiente")
+            return
+        }
+        contaCorrente!!.depositar(-valor)
+        transacoes.add(Pair(TipoTransacao.PAGAMENTO, valor))
+    }
+
+    fun pagarDivida(valor: Double) {
+        if (contaCorrente!!.dividaCredEspecial.get()!! < valor) {
+            println("Valor maior que a dívida")
+            return
+        }
+
+        if (valor > contaCorrente!!.saldo.get()!!) {
+            println("Saldo insuficiente")
+            return
+        }
+
+        contaCorrente!!.processarDivida(valor)
+        transacoes.add(Pair(TipoTransacao.PAGAMENTO, valor))
+    }
+
+    //TODO: Adicionar escolha de qual usar para transferir
+    fun transferir(valor: Double, contaDestino: PessoaFisica, tipoConta: TipoConta) {
+        if (tipoConta == TipoConta.CORRENTE) {
+            if (valor > contaCorrente!!.saldo.get()!!) {
+                println("Saldo insuficiente")
+                return
+            }
+            contaCorrente?.sacar(valor)
+            contaDestino.depositar(valor, TipoConta.CORRENTE)
+        } else if (tipoConta == TipoConta.POUPANCA) {
+            if (valor > contaPoupanca!!.saldo.get()!!) {
+                println("Saldo insuficiente")
+                return
+            }
+            contaPoupanca?.sacar(valor)
+            contaDestino.depositar(valor, TipoConta.POUPANCA)
+        }
+        transacoes.add(Pair(TipoTransacao.TRANSFERENCIA, valor))
+    }
+
+    fun extrato() {
+        println("# Extrato #")
+        for ((index, transacao) in transacoes.reversed().withIndex()) {
+            if (index == transacoes.size - 15) break
+            println("${transacao.first.descricao} - Valor: ${transacao.second}")
+        }
+    }
+
     private fun isContaInvalida(tipoConta: TipoConta): Boolean {
         if (contaCorrente == null && tipoConta == TipoConta.CORRENTE) {
             println("Cliente não possui conta corrente")
@@ -141,6 +208,18 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
             return true
         }
         return false
+    }
+
+    fun getContaCorrente(): String? {
+        return contaCorrente?.numeroConta
+    }
+
+    fun getContaPoupanca(): String? {
+        return contaPoupanca?.numeroConta
+    }
+
+    fun getDividaCredEspecial(): Double? {
+        return contaCorrente?.dividaCredEspecial?.get()
     }
 
     fun aplicarJuros() {
