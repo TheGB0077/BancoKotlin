@@ -38,10 +38,10 @@ abstract class Conta {
 
 private class ContaCorrente(private val cpf: String, private val nomeTitular: String) : Conta() {
 
-    var limiteSaque:Double = 1200.0
-    var limiteCredMax:Double = 2000.0
-    var limiteCredito:Double = 2000.0
-    val dividaCredEspecial:AtomicReference<Double> = AtomicReference(0.0)
+    var limiteSaque: Double = 1200.0
+    var limiteCredMax: Double = 2000.0
+    var limiteCredito: Double = 2000.0
+    val dividaCredEspecial: AtomicReference<Double> = AtomicReference(0.0)
 
     override fun sacar(valor: Double): Boolean {
         if (isBloqueada()) {
@@ -116,8 +116,8 @@ private class ContaPoupanca(private val cpf: String, private val nomeTitular: St
 
 class PessoaFisica(private val cpf: String, private val nomeTitular: String, opcoes: Array<TipoConta>) {
 
-    private var contaCorrente:ContaCorrente? = null
-    private var contaPoupanca:ContaPoupanca? = null
+    private var contaCorrente: ContaCorrente? = null
+    private var contaPoupanca: ContaPoupanca? = null
     private val transacoes = mutableListOf<Pair<TipoTransacao, Double>>()
 
     init {
@@ -199,9 +199,7 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
             }
             contaCorrente?.sacar(valor)
             contaDestino.depositar(valor, tipoConta)
-        }
-
-        else if (contaTransacao == TipoConta.POUPANCA) {
+        } else if (contaTransacao == TipoConta.POUPANCA) {
             if (valor > contaPoupanca!!.saldo.get()!!) {
                 println("Saldo insuficiente")
                 return

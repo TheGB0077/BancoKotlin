@@ -40,9 +40,11 @@ fun main(args: Array<String>) {
             "1", "2", "3", "4", "5", "6" -> {
                 print("Digite o seu CPF: ")
             }
+
             "7", "8", "9", "A", "B" -> {
                 print("Digite o CPF do cliente: ")
             }
+
             else -> {
                 println("Opção inválida\n")
                 continue
@@ -61,6 +63,7 @@ fun main(args: Array<String>) {
                 val valor = lerValor()
                 qualConta(conta)?.let { conta.depositar(valor, it) }
             }
+
             "2" -> {
                 print("Digite o valor a ser sacado: ")
                 val valor = lerValor()
