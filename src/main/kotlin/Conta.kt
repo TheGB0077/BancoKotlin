@@ -34,7 +34,6 @@ abstract class Conta {
     fun isBloqueada(): Boolean {
         return bloqueada
     }
-
 }
 
 private class ContaCorrente(private val cpf: String, private val nomeTitular: String) : Conta() {
@@ -131,7 +130,7 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
     }
 
     fun depositar(valor: Double, tipoConta: TipoConta) {
-        if (isContaInvalida(tipoConta)) return
+        if (!isContaValida(tipoConta)) return
 
         var efetuado = false
         if (tipoConta == TipoConta.CORRENTE) {
@@ -143,7 +142,7 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
     }
 
     fun sacar(valor: Double, tipoConta: TipoConta) {
-        if (isContaInvalida(tipoConta)) return
+        if (!isContaValida(tipoConta)) return
 
         var efetuado = false
         if (tipoConta == TipoConta.CORRENTE) {
@@ -178,22 +177,37 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
         transacoes.add(Pair(TipoTransacao.PAGAMENTO, valor))
     }
 
-    //TODO: Adicionar escolha de qual usar para transferir
     fun transferir(valor: Double, contaDestino: PessoaFisica, tipoConta: TipoConta) {
-        if (tipoConta == TipoConta.CORRENTE) {
+        lateinit var contaTransacao: TipoConta
+
+        var tentativas = 0
+        while (true) {
+            tentativas++
+            if (tentativas > 3) {
+                println("Operação Cancelada")
+                return
+            }
+            val resposta = qualConta() ?: continue
+            contaTransacao = resposta
+            break
+        }
+
+        if (contaTransacao == TipoConta.CORRENTE) {
             if (valor > contaCorrente!!.saldo.get()!!) {
                 println("Saldo insuficiente")
                 return
             }
             contaCorrente?.sacar(valor)
-            contaDestino.depositar(valor, TipoConta.CORRENTE)
-        } else if (tipoConta == TipoConta.POUPANCA) {
+            contaDestino.depositar(valor, tipoConta)
+        }
+
+        else if (contaTransacao == TipoConta.POUPANCA) {
             if (valor > contaPoupanca!!.saldo.get()!!) {
                 println("Saldo insuficiente")
                 return
             }
             contaPoupanca?.sacar(valor)
-            contaDestino.depositar(valor, TipoConta.POUPANCA)
+            contaDestino.depositar(valor, tipoConta)
         }
         transacoes.add(Pair(TipoTransacao.TRANSFERENCIA, valor))
     }
@@ -217,16 +231,57 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
         println("\n# Fim do histórico #\n")
     }
 
-    private fun isContaInvalida(tipoConta: TipoConta): Boolean {
-        if (contaCorrente == null && tipoConta == TipoConta.CORRENTE) {
-            println("Cliente não possui conta corrente")
+    private fun isContaValida(tipoConta: TipoConta): Boolean {
+        val contas = verificaConta()
+
+        if (contas.size == 2) return true
+
+        if (contas.isEmpty()) {
+            println("Cliente não possui nenhuma conta")
+            return false
+        }
+
+        if (tipoConta == TipoConta.CORRENTE) {
+            if (!contas.contains(TipoConta.CORRENTE)) {
+                println("Cliente não possui conta corrente")
+                return false
+            }
             return true
         }
-        if (contaPoupanca == null && tipoConta == TipoConta.POUPANCA) {
-            println("Cliente não possui conta poupança")
+        if (tipoConta == TipoConta.POUPANCA) {
+            if (!contas.contains(TipoConta.POUPANCA)) {
+                println("Cliente não possui conta poupança")
+                return false
+            }
             return true
         }
         return false
+    }
+
+    private fun verificaConta(): Array<TipoConta> {
+        val contas = mutableListOf<TipoConta>()
+        if (contaCorrente != null) contas.add(TipoConta.CORRENTE)
+        if (contaPoupanca != null) contas.add(TipoConta.POUPANCA)
+        return contas.toTypedArray()
+    }
+
+    fun qualConta(): TipoConta? {
+        val contas = verificaConta()
+        if (contas.size == 2) {
+            println("Qual conta deseja usar? (1 - Corrente, 2 - Poupança): ")
+            val resposta = readlnOrNull()
+            if (resposta == "1") return TipoConta.CORRENTE
+            if (resposta == "2") return TipoConta.POUPANCA
+            println("Opção inválida\n")
+            return null
+        }
+        if (contas.isEmpty()) {
+            println("Cliente não possui nenhuma conta")
+            return null
+        }
+        if (contas.contains(TipoConta.CORRENTE)) return TipoConta.CORRENTE
+        if (contas.contains(TipoConta.POUPANCA)) return TipoConta.POUPANCA
+        return null
     }
 
     fun getContaCorrente(): String? {
@@ -270,6 +325,7 @@ class PessoaFisica(private val cpf: String, private val nomeTitular: String, opc
             return
         } else {
             contaCorrente!!.limiteCredito -= diferencaLimite
+            contaCorrente!!.limiteCredMax = limite
         }
     }
 

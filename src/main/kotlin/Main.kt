@@ -59,12 +59,12 @@ fun main(args: Array<String>) {
             "1" -> {
                 print("Digite o valor a ser depositado: ")
                 val valor = lerValor()
-                conta.depositar(valor, TipoConta.CORRENTE)
+                qualConta(conta)?.let { conta.depositar(valor, it) }
             }
             "2" -> {
                 print("Digite o valor a ser sacado: ")
                 val valor = lerValor()
-                conta.sacar(valor, TipoConta.CORRENTE)
+                qualConta(conta)?.let { conta.sacar(valor, it) }
             }
 
             "3" -> {
@@ -89,11 +89,12 @@ fun main(args: Array<String>) {
                 val contaDestino = readln()
                 print("Digite o valor a ser transferido: ")
                 val valor = lerValor()
-                contaManager.buscaIndice(contaDestino)?.let {
-                    conta.transferir(valor, it.first, it.second)
-                    return
+                val contaBuscada = contaManager.buscaIndice(contaDestino)
+                if (contaBuscada != null) {
+                    conta.transferir(valor, contaBuscada.first, contaBuscada.second)
+                } else {
+                    println("Conta não encontrada")
                 }
-                println("Conta não encontrada")
             }
 
             "5" -> {
@@ -150,7 +151,11 @@ private fun lerValor(): Double {
     return readln().replace(oldChar = ',', newChar = '.').toDouble()
 }
 
-fun procuraCPF(): PessoaFisica? {
+private fun procuraCPF(): PessoaFisica? {
     val cpf = readln()
     return ContaManager.instance.buscarConta(cpf)
+}
+
+private fun qualConta(conta: PessoaFisica): TipoConta? {
+    return conta.qualConta()
 }
