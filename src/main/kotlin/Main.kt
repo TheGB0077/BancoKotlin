@@ -146,8 +146,14 @@ fun main(args: Array<String>) {
                 conta.historicoTransacoes()
             }
         }
-        Thread.sleep(1000)
+        nextLoop()
     }
+}
+
+private fun nextLoop() {
+    println("\nPressione ENTER para continuar")
+    readln()
+    Thread.sleep(300)
 }
 
 private fun lerValor(): Double {
